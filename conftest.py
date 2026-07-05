@@ -27,6 +27,50 @@ def auth_client(api_client, agente):
 
 
 @pytest.fixture
+def otro_agente(db):
+    return Usuario.objects.create_user(
+        email="otro.agente@sersocial.test",
+        password="Agente123!",
+        nombre="Beto Agente",
+        rol=Usuario.Rol.AGENTE,
+    )
+
+
+@pytest.fixture
+def supervisor(db):
+    return Usuario.objects.create_user(
+        email="supervisor@sersocial.test",
+        password="Supervisor123!",
+        nombre="Sara Supervisora",
+        rol=Usuario.Rol.SUPERVISOR,
+    )
+
+
+@pytest.fixture
+def supervisor_client(api_client, supervisor):
+    api_client.force_authenticate(user=supervisor)
+    return api_client
+
+
+@pytest.fixture
+def admin(db):
+    return Usuario.objects.create_user(
+        email="admin@sersocial.test",
+        password="Admin123!",
+        nombre="Alex Admin",
+        rol=Usuario.Rol.ADMIN,
+        is_staff=True,
+        is_superuser=True,
+    )
+
+
+@pytest.fixture
+def admin_client(api_client, admin):
+    api_client.force_authenticate(user=admin)
+    return api_client
+
+
+@pytest.fixture
 def ciudadano(db):
     return Ciudadano.objects.create(
         nombre="Carlos",

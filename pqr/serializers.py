@@ -21,6 +21,10 @@ class SeguimientoSerializer(serializers.ModelSerializer):
 
 class PQRListSerializer(serializers.ModelSerializer):
     solicitante_nombre = serializers.CharField(source="solicitante.nombre_completo", read_only=True)
+    agente_asignado_nombre = serializers.CharField(
+        source="agente_asignado.nombre", default=None, read_only=True
+    )
+    sla_estado = serializers.CharField(read_only=True)
 
     class Meta:
         model = PQR
@@ -34,6 +38,9 @@ class PQRListSerializer(serializers.ModelSerializer):
             "estado",
             "canal",
             "solicitante_nombre",
+            "agente_asignado_nombre",
+            "fecha_limite",
+            "sla_estado",
             "created_at",
             "updated_at",
         ]
@@ -45,6 +52,8 @@ class PQRDetailSerializer(serializers.ModelSerializer):
         source="agente_asignado.nombre", default=None, read_only=True
     )
     seguimientos = SeguimientoSerializer(many=True, read_only=True)
+    sla_estado = serializers.CharField(read_only=True)
+    puede_calificarse = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = PQR
@@ -59,8 +68,14 @@ class PQRDetailSerializer(serializers.ModelSerializer):
             "estado",
             "canal",
             "solicitante",
+            "agente_asignado_id",
             "agente_asignado_nombre",
             "seguimientos",
+            "fecha_limite",
+            "sla_estado",
+            "calificacion",
+            "comentario_calificacion",
+            "puede_calificarse",
             "created_at",
             "updated_at",
         ]
@@ -95,6 +110,9 @@ class PQRCreateSerializer(serializers.ModelSerializer):
 
 
 class PQRBuscarSerializer(serializers.ModelSerializer):
+    sla_estado = serializers.CharField(read_only=True)
+    puede_calificarse = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = PQR
         fields = [
@@ -103,6 +121,9 @@ class PQRBuscarSerializer(serializers.ModelSerializer):
             "categoria",
             "prioridad",
             "estado",
+            "fecha_limite",
+            "sla_estado",
+            "puede_calificarse",
             "created_at",
             "updated_at",
         ]
@@ -129,3 +150,32 @@ class AgregarSeguimientoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Seguimiento
         fields = ["descripcion", "tipo_accion"]
+
+
+class AsignarAgenteSerializer(serializers.Serializer):
+    agente_id = serializers.IntegerField()
+
+    def validate_agente_id(self, value):
+        from accounts.models import Usuario
+
+        if not Usuario.objects.filter(id=value, is_active=True).exists():
+            raise serializers.ValidationError("El usuario indicado no existe o no está activo.")
+        return value
+
+
+class CalificarPQRSerializer(serializers.Serializer):
+    radicado = serializers.CharField()
+    calificacion = serializers.IntegerField(min_value=1, max_value=5)
+    comentario = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_radicado(self, value):
+        try:
+            pqr = PQR.objects.get(radicado__iexact=value)
+        except PQR.DoesNotExist as exc:
+            raise serializers.ValidationError("No existe ninguna PQR con ese radicado.") from exc
+        if not pqr.puede_calificarse:
+            raise serializers.ValidationError(
+                "Esta PQR no admite calificación (debe estar cerrada y no calificada antes)."
+            )
+        self.pqr = pqr
+        return value

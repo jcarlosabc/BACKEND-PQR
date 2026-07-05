@@ -128,8 +128,10 @@ def test_agregar_seguimiento_queda_en_el_historial(auth_client, pqr):
 
     historial = auth_client.get(f"/api/pqr/{pqr.id}/seguimiento")
     assert historial.status_code == 200
-    assert len(historial.data) == 1
-    assert historial.data[0]["usuario_nombre"] == "Ana Agente"
+    # el agente toma la PQR sin asignar: queda la entrada de auto-asignación + el comentario
+    assert len(historial.data) == 2
+    assert historial.data[-1]["usuario_nombre"] == "Ana Agente"
+    assert historial.data[-1]["descripcion"] == "Se contactó al solicitante por teléfono."
 
 
 def test_estadisticas_requiere_autenticacion(api_client):

@@ -122,16 +122,59 @@ seguimiento, estadísticas) requiere un token de un usuario interno.
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
 | `POST` | `/api/pqr` | Público | Crear una PQR (incluye datos del solicitante) |
-| `GET` | `/api/pqr` | Agente | Listar con filtros `tipo`, `estado`, `prioridad`, `categoria` |
-| `GET` | `/api/pqr/{id}` | Agente | Detalle completo, con solicitante y seguimientos |
-| `PATCH` | `/api/pqr/{id}/estado` | Agente | Cambiar estado y/o prioridad (valida transición) |
-| `GET`/`POST` | `/api/pqr/{id}/seguimiento` | Agente | Ver o agregar entradas de seguimiento |
+| `GET` | `/api/pqr` | Agente* | Listar con filtros `tipo`, `estado`, `prioridad`, `categoria` |
+| `GET` | `/api/pqr/{id}` | Agente* | Detalle completo, con solicitante y seguimientos |
+| `PATCH` | `/api/pqr/{id}/estado` | Agente* | Cambiar estado y/o prioridad (valida transición) |
+| `GET`/`POST` | `/api/pqr/{id}/seguimiento` | Agente* | Ver o agregar entradas de seguimiento |
+| `PATCH` | `/api/pqr/{id}/asignar` | Supervisor/Admin | Reasignar la PQR a otro usuario interno |
 | `GET` | `/api/pqr/buscar?radicado=` | Público | Consulta liviana por radicado |
-| `GET` | `/api/estadisticas` | Agente | Conteos por estado, tipo y prioridad |
+| `POST` | `/api/pqr/calificar` | Público | Calificar (1-5) una PQR ya cerrada, una sola vez |
+| `GET` | `/api/pqr/exportar` | Agente* | Exporta a CSV el listado con los filtros activos |
+| `GET` | `/api/estadisticas` | Agente* | Conteos por estado, tipo, prioridad, vencidas, calificación promedio |
+| `GET` | `/api/usuarios` | Supervisor/Admin | Listar usuarios internos (para el combo de reasignación) |
+| `POST` | `/api/usuarios` | Admin | Crear un usuario interno nuevo |
+| `PATCH` | `/api/usuarios/{id}` | Admin | Cambiar rol y/o activar-desactivar un usuario |
+
+\* Ver la sección "Roles y control de acceso" — un agente no ve/gestiona lo mismo que un supervisor.
 
 La transición de estado sigue el flujo obligatorio
 `recibida → en_gestion → resuelta → cerrada`; saltos o retrocesos se
 rechazan con `400`.
+
+`GET /api/pqr` acepta además `q` (busca en título y descripción) y
+`vencidas=true` (solo PQR abiertas cuyo plazo de respuesta ya pasó).
+
+## Roles y control de acceso
+
+El rol de cada usuario interno (`agente` / `supervisor` / `admin`) no es
+solo un dato: controla qué puede ver y hacer cada quien.
+
+- **Agente**: en `GET /api/pqr` y en las acciones sobre una PQR
+  (`estado`, `seguimiento`) solo ve/gestiona PQR **sin asignar** o
+  **asignadas a sí mismo**. Si un agente actúa sobre una PQR sin asignar
+  (cambia estado o agrega un seguimiento), esa PQR queda automáticamente
+  asignada a él — no hay un paso manual de "tomar caso". Si intenta
+  actuar sobre una PQR asignada a otro agente, la API responde `404`
+  (no la ve, ni siquiera para saber que existe).
+- **Supervisor / Admin**: ven y gestionan cualquier PQR sin ese filtro,
+  y ambos pueden reasignar (`PATCH /api/pqr/{id}/asignar`) o listar los
+  usuarios internos (`GET /api/usuarios`).
+- **Admin**, además, es el único que puede **crear, activar/desactivar y
+  cambiar el rol** de un usuario interno (`POST`/`PATCH /api/usuarios`) —
+  un supervisor solo puede ver la lista, no gestionarla. Admin también
+  conserva acceso al panel de Django (`/admin/`).
+
+Ver `pqr-sistema/decisiones_arquitectura.md` para el detalle de por qué
+se modeló así.
+
+## SLA de respuesta
+
+Cada PQR calcula su fecha límite de respuesta al crearse
+(`PQR_DIAS_SLA` en `.env`, 15 días calendario por defecto). El campo
+`sla_estado` (expuesto en listado, detalle y búsqueda pública) vale
+`a_tiempo`, `por_vencer` (3 días o menos), `vencida`, o —una vez resuelta
+o cerrada— `cumplido`/`incumplido` según si se respondió antes del plazo.
+`GET /api/estadisticas` agrega los conteos `vencidas` y `por_vencer`.
 
 ## Tests y cobertura
 
@@ -140,9 +183,12 @@ pytest
 pytest --cov=accounts --cov=pqr --cov-report=term-missing
 ```
 
-17 pruebas cubren creación pública de PQR, reutilización de ciudadano
-existente, filtros de listado, control de acceso, transiciones de estado
-válidas e inválidas, seguimiento y autenticación. Cobertura actual: 96%.
+42 pruebas cubren creación pública de PQR, reutilización de ciudadano
+existente, filtros de listado, control de acceso por rol (agente vs.
+supervisor/admin), auto-asignación, reasignación, gestión de usuarios
+(admin), SLA de respuesta, búsqueda de texto, exportación CSV,
+calificación, transiciones de estado válidas e inválidas, seguimiento y
+autenticación. Cobertura actual: 94%.
 
 ## Calidad de código
 
@@ -173,6 +219,28 @@ gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
 `gunicorn` debe correr detrás de un proxy como nginx que sirva
 `staticfiles/` y termine TLS. La guía paso a paso completa (con Docker,
 recomendada) está en `despliegue.md` del repositorio `pqr-sistema`.
+
+## Solución de problemas comunes
+
+**`sqlite3.OperationalError: no such table: usuarios`** (u otra tabla)
+al correr `seed_demo` o `runserver`: te faltó `python manage.py migrate`
+antes. El orden siempre es `migrate` → `seed_demo` → `runserver`.
+
+**`no configuration file provided: not found`** al correr
+`docker compose up`: estás parado en la carpeta equivocada. Este
+repositorio (`backend-pqr`) tiene su propio `docker-compose.yml` (levanta
+solo backend + Postgres) — créelo desde **dentro de `backend-pqr`**. El
+`docker-compose.yml` del sistema completo (backend + frontend) está en
+la carpeta **`pqr-sistema`** (con "a"), no en `pqr-system` (con "y", la
+carpeta que las contiene a las tres) ni en `frontend-pqr`. Confirma en
+qué carpeta estás con `pwd` (Linux/Mac) o `cd` sin argumentos (Windows)
+antes de correr el comando.
+
+**El frontend muestra "No se pudo conectar con el servidor"**: confirma
+primero que el backend responde por su cuenta: `curl http://localhost:8000/api/estadisticas`
+(debe dar `401`, no un error de conexión). Si el backend responde bien,
+el problema está en el frontend o en el proxy de nginx — revisa
+`frontend-pqr/README.md`.
 
 ## Estructura del proyecto
 

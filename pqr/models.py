@@ -1,6 +1,10 @@
+import datetime
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
+
+DIAS_SLA_RESPUESTA = getattr(settings, "PQR_DIAS_SLA", 15)
 
 
 class Ciudadano(models.Model):
@@ -71,6 +75,10 @@ class PQR(models.Model):
         related_name="pqrs_asignadas",
     )
 
+    fecha_limite = models.DateField(null=True, blank=True, editable=False)
+    calificacion = models.PositiveSmallIntegerField(null=True, blank=True)
+    comentario_calificacion = models.TextField(blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -88,6 +96,8 @@ class PQR(models.Model):
 
     def save(self, *args, **kwargs):
         is_new = self._state.adding
+        if is_new and not self.fecha_limite:
+            self.fecha_limite = timezone.now().date() + datetime.timedelta(days=DIAS_SLA_RESPUESTA)
         super().save(*args, **kwargs)
         if is_new and not self.radicado:
             year = timezone.now().year
@@ -96,6 +106,25 @@ class PQR(models.Model):
 
     def transicion_valida(self, nuevo_estado):
         return nuevo_estado in self.TRANSICIONES_VALIDAS.get(self.estado, set())
+
+    @property
+    def sla_estado(self):
+        """'a_tiempo' | 'por_vencer' (<=3 días) | 'vencida' | 'cumplido' | 'incumplido'.
+        Los dos últimos aplican una vez la PQR está resuelta o cerrada."""
+        if not self.fecha_limite:
+            return "a_tiempo"
+        if self.estado in (self.Estado.RESUELTA, self.Estado.CERRADA):
+            return "cumplido" if self.updated_at.date() <= self.fecha_limite else "incumplido"
+        dias_restantes = (self.fecha_limite - timezone.now().date()).days
+        if dias_restantes < 0:
+            return "vencida"
+        if dias_restantes <= 3:
+            return "por_vencer"
+        return "a_tiempo"
+
+    @property
+    def puede_calificarse(self):
+        return self.estado == self.Estado.CERRADA and self.calificacion is None
 
 
 class Seguimiento(models.Model):

@@ -120,6 +120,10 @@ EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default="pqr@sersocial.local")
 
+# Plazo de respuesta (SLA) en días calendario, aplicado al crear una PQR.
+# Ajusta según la normativa aplicable (p. ej. derecho de petición en Colombia).
+PQR_DIAS_SLA = config("PQR_DIAS_SLA", default=15, cast=int)
+
 if not DEBUG:
     SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=False, cast=bool)
     SESSION_COOKIE_SECURE = True
