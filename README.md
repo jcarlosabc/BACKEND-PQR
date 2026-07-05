@@ -259,8 +259,9 @@ backend-pqr/
 ## Uso de IA
 
 Este proyecto usó Claude Code (Anthropic) como asistente de desarrollo
-durante la construcción del backend. Alcance: generación de código a partir
-de decisiones de modelado, arquitectura y validación tomadas y revisadas
-punto a punto durante el desarrollo (modelos, endpoints, permisos,
-notificaciones, pruebas). Ajusta este párrafo si quieres precisar mejor el
-alcance real antes de entregar.
+durante la construcción del backend
+Alcance: decisiones de modelado y validación tomadas y revisadas 
+(modelos, endpoints, permisos, pruebas). 
+
+
+
