@@ -110,15 +110,19 @@ class EstadisticasView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        return Response({
-            "total": PQR.objects.count(),
-            "por_estado": list(
-                PQR.objects.values("estado").order_by("estado").annotate(total=Count("id"))
-            ),
-            "por_tipo": list(
-                PQR.objects.values("tipo").order_by("tipo").annotate(total=Count("id"))
-            ),
-            "por_prioridad": list(
-                PQR.objects.values("prioridad").order_by("prioridad").annotate(total=Count("id"))
-            ),
-        })
+        return Response(
+            {
+                "total": PQR.objects.count(),
+                "por_estado": list(
+                    PQR.objects.values("estado").order_by("estado").annotate(total=Count("id"))
+                ),
+                "por_tipo": list(
+                    PQR.objects.values("tipo").order_by("tipo").annotate(total=Count("id"))
+                ),
+                "por_prioridad": list(
+                    PQR.objects.values("prioridad")
+                    .order_by("prioridad")
+                    .annotate(total=Count("id"))
+                ),
+            }
+        )

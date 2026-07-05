@@ -62,9 +62,7 @@ class PQR(models.Model):
     estado = models.CharField(max_length=20, choices=Estado.choices, default=Estado.RECIBIDA)
     canal = models.CharField(max_length=20, choices=Canal.choices, default=Canal.WEB)
 
-    solicitante = models.ForeignKey(
-        Ciudadano, on_delete=models.PROTECT, related_name="pqrs"
-    )
+    solicitante = models.ForeignKey(Ciudadano, on_delete=models.PROTECT, related_name="pqrs")
     agente_asignado = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

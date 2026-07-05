@@ -15,68 +15,171 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Ciudadano',
+            name="Ciudadano",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('nombre', models.CharField(max_length=100)),
-                ('apellido', models.CharField(max_length=100)),
-                ('identificacion', models.CharField(max_length=20, unique=True)),
-                ('email', models.EmailField(max_length=254)),
-                ('telefono', models.CharField(blank=True, max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("nombre", models.CharField(max_length=100)),
+                ("apellido", models.CharField(max_length=100)),
+                ("identificacion", models.CharField(max_length=20, unique=True)),
+                ("email", models.EmailField(max_length=254)),
+                ("telefono", models.CharField(blank=True, max_length=20)),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
             ],
             options={
-                'db_table': 'ciudadanos',
-                'ordering': ['apellido', 'nombre'],
+                "db_table": "ciudadanos",
+                "ordering": ["apellido", "nombre"],
             },
         ),
         migrations.CreateModel(
-            name='PQR',
+            name="PQR",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('radicado', models.CharField(editable=False, max_length=20, unique=True)),
-                ('tipo', models.CharField(choices=[('peticion', 'Petición'), ('queja', 'Queja'), ('reclamo', 'Reclamo')], max_length=20)),
-                ('titulo', models.CharField(max_length=150)),
-                ('descripcion', models.TextField()),
-                ('categoria', models.CharField(max_length=60)),
-                ('prioridad', models.CharField(choices=[('baja', 'Baja'), ('media', 'Media'), ('alta', 'Alta'), ('urgente', 'Urgente')], default='media', max_length=20)),
-                ('estado', models.CharField(choices=[('recibida', 'Recibida'), ('en_gestion', 'En gestión'), ('resuelta', 'Resuelta'), ('cerrada', 'Cerrada')], default='recibida', max_length=20)),
-                ('canal', models.CharField(choices=[('web', 'Web'), ('email', 'Correo electrónico'), ('presencial', 'Presencial')], default='web', max_length=20)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
-                ('updated_at', models.DateTimeField(auto_now=True)),
-                ('agente_asignado', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='pqrs_asignadas', to=settings.AUTH_USER_MODEL)),
-                ('solicitante', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='pqrs', to='pqr.ciudadano')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("radicado", models.CharField(editable=False, max_length=20, unique=True)),
+                (
+                    "tipo",
+                    models.CharField(
+                        choices=[
+                            ("peticion", "Petición"),
+                            ("queja", "Queja"),
+                            ("reclamo", "Reclamo"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("titulo", models.CharField(max_length=150)),
+                ("descripcion", models.TextField()),
+                ("categoria", models.CharField(max_length=60)),
+                (
+                    "prioridad",
+                    models.CharField(
+                        choices=[
+                            ("baja", "Baja"),
+                            ("media", "Media"),
+                            ("alta", "Alta"),
+                            ("urgente", "Urgente"),
+                        ],
+                        default="media",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "estado",
+                    models.CharField(
+                        choices=[
+                            ("recibida", "Recibida"),
+                            ("en_gestion", "En gestión"),
+                            ("resuelta", "Resuelta"),
+                            ("cerrada", "Cerrada"),
+                        ],
+                        default="recibida",
+                        max_length=20,
+                    ),
+                ),
+                (
+                    "canal",
+                    models.CharField(
+                        choices=[
+                            ("web", "Web"),
+                            ("email", "Correo electrónico"),
+                            ("presencial", "Presencial"),
+                        ],
+                        default="web",
+                        max_length=20,
+                    ),
+                ),
+                ("created_at", models.DateTimeField(auto_now_add=True)),
+                ("updated_at", models.DateTimeField(auto_now=True)),
+                (
+                    "agente_asignado",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="pqrs_asignadas",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
+                (
+                    "solicitante",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.PROTECT,
+                        related_name="pqrs",
+                        to="pqr.ciudadano",
+                    ),
+                ),
             ],
             options={
-                'db_table': 'pqrs',
-                'ordering': ['-created_at'],
+                "db_table": "pqrs",
+                "ordering": ["-created_at"],
             },
         ),
         migrations.CreateModel(
-            name='Seguimiento',
+            name="Seguimiento",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('descripcion', models.TextField()),
-                ('tipo_accion', models.CharField(choices=[('comentario', 'Comentario interno'), ('cambio_estado', 'Cambio de estado'), ('cambio_prioridad', 'Cambio de prioridad'), ('asignacion', 'Asignación de agente')], max_length=20)),
-                ('fecha_registro', models.DateTimeField(auto_now_add=True)),
-                ('pqr', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='seguimientos', to='pqr.pqr')),
-                ('usuario', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='seguimientos_registrados', to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True, primary_key=True, serialize=False, verbose_name="ID"
+                    ),
+                ),
+                ("descripcion", models.TextField()),
+                (
+                    "tipo_accion",
+                    models.CharField(
+                        choices=[
+                            ("comentario", "Comentario interno"),
+                            ("cambio_estado", "Cambio de estado"),
+                            ("cambio_prioridad", "Cambio de prioridad"),
+                            ("asignacion", "Asignación de agente"),
+                        ],
+                        max_length=20,
+                    ),
+                ),
+                ("fecha_registro", models.DateTimeField(auto_now_add=True)),
+                (
+                    "pqr",
+                    models.ForeignKey(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        related_name="seguimientos",
+                        to="pqr.pqr",
+                    ),
+                ),
+                (
+                    "usuario",
+                    models.ForeignKey(
+                        blank=True,
+                        null=True,
+                        on_delete=django.db.models.deletion.SET_NULL,
+                        related_name="seguimientos_registrados",
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
             options={
-                'db_table': 'seguimientos',
-                'ordering': ['fecha_registro'],
+                "db_table": "seguimientos",
+                "ordering": ["fecha_registro"],
             },
         ),
         migrations.AddIndex(
-            model_name='pqr',
-            index=models.Index(fields=['estado'], name='pqrs_estado_564554_idx'),
+            model_name="pqr",
+            index=models.Index(fields=["estado"], name="pqrs_estado_564554_idx"),
         ),
         migrations.AddIndex(
-            model_name='pqr',
-            index=models.Index(fields=['tipo'], name='pqrs_tipo_d89178_idx'),
+            model_name="pqr",
+            index=models.Index(fields=["tipo"], name="pqrs_tipo_d89178_idx"),
         ),
         migrations.AddIndex(
-            model_name='pqr',
-            index=models.Index(fields=['prioridad'], name='pqrs_priorid_59b372_idx'),
+            model_name="pqr",
+            index=models.Index(fields=["prioridad"], name="pqrs_priorid_59b372_idx"),
         ),
     ]

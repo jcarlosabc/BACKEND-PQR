@@ -11,9 +11,7 @@ class CiudadanoSerializer(serializers.ModelSerializer):
 
 
 class SeguimientoSerializer(serializers.ModelSerializer):
-    usuario_nombre = serializers.CharField(
-        source="usuario.nombre", default=None, read_only=True
-    )
+    usuario_nombre = serializers.CharField(source="usuario.nombre", default=None, read_only=True)
 
     class Meta:
         model = Seguimiento
@@ -22,15 +20,22 @@ class SeguimientoSerializer(serializers.ModelSerializer):
 
 
 class PQRListSerializer(serializers.ModelSerializer):
-    solicitante_nombre = serializers.CharField(
-        source="solicitante.nombre_completo", read_only=True
-    )
+    solicitante_nombre = serializers.CharField(source="solicitante.nombre_completo", read_only=True)
 
     class Meta:
         model = PQR
         fields = [
-            "id", "radicado", "tipo", "titulo", "categoria", "prioridad",
-            "estado", "canal", "solicitante_nombre", "created_at", "updated_at",
+            "id",
+            "radicado",
+            "tipo",
+            "titulo",
+            "categoria",
+            "prioridad",
+            "estado",
+            "canal",
+            "solicitante_nombre",
+            "created_at",
+            "updated_at",
         ]
 
 
@@ -44,14 +49,32 @@ class PQRDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = PQR
         fields = [
-            "id", "radicado", "tipo", "titulo", "descripcion", "categoria",
-            "prioridad", "estado", "canal", "solicitante", "agente_asignado_nombre",
-            "seguimientos", "created_at", "updated_at",
+            "id",
+            "radicado",
+            "tipo",
+            "titulo",
+            "descripcion",
+            "categoria",
+            "prioridad",
+            "estado",
+            "canal",
+            "solicitante",
+            "agente_asignado_nombre",
+            "seguimientos",
+            "created_at",
+            "updated_at",
         ]
 
 
+class SolicitanteInputSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ciudadano
+        fields = ["nombre", "apellido", "identificacion", "email", "telefono"]
+        extra_kwargs = {"identificacion": {"validators": []}}
+
+
 class PQRCreateSerializer(serializers.ModelSerializer):
-    solicitante = CiudadanoSerializer()
+    solicitante = SolicitanteInputSerializer()
 
     class Meta:
         model = PQR
@@ -74,7 +97,15 @@ class PQRCreateSerializer(serializers.ModelSerializer):
 class PQRBuscarSerializer(serializers.ModelSerializer):
     class Meta:
         model = PQR
-        fields = ["radicado", "tipo", "categoria", "prioridad", "estado", "created_at", "updated_at"]
+        fields = [
+            "radicado",
+            "tipo",
+            "categoria",
+            "prioridad",
+            "estado",
+            "created_at",
+            "updated_at",
+        ]
 
 
 class CambiarEstadoSerializer(serializers.Serializer):

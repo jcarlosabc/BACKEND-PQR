@@ -12,7 +12,15 @@ class SeguimientoInline(admin.TabularInline):
 
 @admin.register(PQR)
 class PQRAdmin(admin.ModelAdmin):
-    list_display = ["radicado", "titulo", "tipo", "estado", "prioridad", "solicitante", "created_at"]
+    list_display = [
+        "radicado",
+        "titulo",
+        "tipo",
+        "estado",
+        "prioridad",
+        "solicitante",
+        "created_at",
+    ]
     list_filter = ["estado", "tipo", "prioridad", "canal"]
     search_fields = ["radicado", "titulo", "solicitante__nombre", "solicitante__apellido"]
     readonly_fields = ["radicado", "created_at", "updated_at"]
