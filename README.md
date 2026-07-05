@@ -23,27 +23,61 @@ que levanta el sistema completo viven en el repositorio `pqr-sistema`.
 - Python 3.11 o superior
 - PostgreSQL 14+ (opcional en desarrollo; sin él, el proyecto usa SQLite automáticamente)
 
-## Puesta en marcha en desarrollo
+## Cómo ejecutar el proyecto
+
+Hay dos formas de levantarlo. Cualquiera de las dos deja la API en
+`http://localhost:8000/api/` en menos de 10 minutos.
+
+### Opción A — Sin Docker (entorno virtual de Python)
+
+Usa SQLite automáticamente (no necesitas instalar PostgreSQL).
 
 ```bash
-cd backend
+git clone https://github.com/jcarlosabc/BACKEND-PQR.git backend-pqr
+cd backend-pqr
+
 python -m venv .venv
 .venv/Scripts/activate          # En Linux/Mac: source .venv/bin/activate
+
 pip install -r requirements-dev.txt
 
-cp .env.example .env             # ajusta valores si es necesario; por defecto usa SQLite
+cp .env.example .env             # valores por defecto ya funcionan con SQLite
 
 python manage.py migrate
-python manage.py seed_demo       # crea usuarios y PQR de ejemplo (ver credenciales abajo)
+python manage.py seed_demo       # crea usuarios y PQR de ejemplo (credenciales más abajo)
 python manage.py runserver
 ```
 
-La API queda disponible en `http://localhost:8000/api/`. El panel de
-administración de Django, en `http://localhost:8000/admin/` (usa las
-credenciales del usuario `admin` creadas por `seed_demo`, ver más abajo).
+La API queda en `http://localhost:8000/api/` y el admin de Django en
+`http://localhost:8000/admin/`.
 
-Todo el proceso, desde clonar hasta tener la API respondiendo, toma entre 5 y
-10 minutos.
+### Opción B — Con Docker (Postgres real, un solo comando)
+
+Requiere Docker y Docker Compose instalados. No necesitas crear un
+entorno virtual ni instalar Python localmente.
+
+```bash
+git clone https://github.com/jcarlosabc/BACKEND-PQR.git backend-pqr
+cd backend-pqr
+
+cp .env.example .env
+
+docker compose up -d --build
+docker compose exec backend python manage.py seed_demo
+```
+
+Esto levanta dos contenedores: `db` (PostgreSQL 16) y `backend` (Django
+con Gunicorn). El primer arranque corre migraciones y `collectstatic`
+automáticamente (ver `entrypoint.sh`). La API queda igual en
+`http://localhost:8000/api/` y el admin en `http://localhost:8000/admin/`.
+
+Para ver los logs: `docker compose logs -f backend`
+Para parar todo: `docker compose down` (agrega `-v` si también quieres borrar los datos de Postgres)
+
+Este `docker-compose.yml` levanta **solo** el backend + su base de datos,
+para poder desarrollar y probar la API de forma aislada. Para levantar
+backend + frontend juntos con un solo comando, usa el
+`docker-compose.yml` del repositorio `pqr-sistema` (ver su README).
 
 ## Variables de entorno
 
@@ -118,7 +152,9 @@ isort accounts pqr config conftest.py manage.py
 ruff check accounts pqr config conftest.py manage.py
 ```
 
-## Producción (sin Docker)
+## Despliegue en producción (VPS, sin Docker)
+
+Si prefieres no usar Docker en el servidor:
 
 ```bash
 pip install -r requirements.txt
@@ -134,23 +170,14 @@ python manage.py collectstatic --noinput
 gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3
 ```
 
-En producción, `gunicorn` debe correr detrás de un proxy como nginx que
-sirva `staticfiles/` y termine TLS. La guía paso a paso para VPS
-(Gunicorn + Nginx) se documenta por separado en `docs/despliegue.md` del
-repositorio `pqr-sistema`.
-
-## Docker
-
-Este repositorio incluirá su propio `docker-compose.yml` (backend +
-PostgreSQL) para levantar solo la API de forma aislada. El
-`docker-compose.yml` que levanta el sistema completo (backend + frontend +
-base de datos) vive en el repositorio `pqr-sistema`. Ambos se agregan en la
-etapa de dockerización del proyecto.
+`gunicorn` debe correr detrás de un proxy como nginx que sirva
+`staticfiles/` y termine TLS. La guía paso a paso completa (con Docker,
+recomendada) está en `despliegue.md` del repositorio `pqr-sistema`.
 
 ## Estructura del proyecto
 
 ```
-backend/
+backend-pqr/
   config/           configuración de Django (settings, urls, wsgi/asgi)
   accounts/         usuario interno (auth, roles), login JWT
   pqr/              Ciudadano, PQR, Seguimiento, API, filtros, notificaciones
